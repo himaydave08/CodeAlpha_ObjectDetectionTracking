@@ -99,7 +99,8 @@ def main():
     # Initialize video writer
     writer = None
     if args.output:
-        # Using MP4V codec which is widely supported
+        # Use standard MP4V codec which is universally supported for writing in OpenCV.
+        # We will convert it to web-compatible H.264 post-process using FFmpeg.
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(args.output, fourcc, fps, (width, height))
         logger.info(f"Saving output video to: {args.output}")
@@ -199,6 +200,36 @@ def main():
         if not args.no_display:
             cv2.destroyAllWindows()
         logger.info(f"Finished processing. Total frames processed: {frame_count}")
+
+        # Post-process: Convert the generated video to H.264 using FFmpeg for web compatibility
+        if args.output and os.path.exists(args.output):
+            temp_output = args.output.replace(".mp4", "_temp.mp4")
+            try:
+                import subprocess
+                # Rename the generated video to a temp file
+                if os.path.exists(temp_output):
+                    os.remove(temp_output)
+                os.rename(args.output, temp_output)
+                
+                # Run ffmpeg to convert to H.264 (libx264)
+                logger.info("Converting output video to web-compatible H.264 format using FFmpeg...")
+                cmd = [
+                    "ffmpeg", "-y", "-i", temp_output,
+                    "-vcodec", "libx264",
+                    "-pix_fmt", "yuv420p",
+                    args.output
+                ]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                logger.info("Video conversion complete.")
+                
+                # Remove the temp file
+                if os.path.exists(temp_output):
+                    os.remove(temp_output)
+            except Exception as convert_error:
+                logger.warning(f"Could not convert video to H.264 via FFmpeg: {convert_error}. "
+                               f"Using original output video.")
+                if os.path.exists(temp_output) and not os.path.exists(args.output):
+                    os.rename(temp_output, args.output)
 
 if __name__ == "__main__":
     main()
