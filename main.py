@@ -139,8 +139,12 @@ def main():
                 bbox = track["bbox"]  # [left, top, right, bottom]
                 class_name = track["class_name"]
                 
-                # Convert coords to integers
-                x1, y1, x2, y2 = map(int, bbox)
+                # Convert coords to integers and clip to frame boundaries
+                h, w, _ = frame.shape
+                x1 = max(0, min(int(bbox[0]), w - 1))
+                y1 = max(0, min(int(bbox[1]), h - 1))
+                x2 = max(0, min(int(bbox[2]), w - 1))
+                y2 = max(0, min(int(bbox[3]), h - 1))
                 
                 # Assign consistent colors based on track ID
                 color = get_color(track_id)
